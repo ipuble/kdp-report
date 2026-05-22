@@ -1,544 +1,153 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KDP 월별 판매 보고서</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>KDP Monthly Sales Report</title>
   <style>
-    :root {
-      --navy: #1f3864;
-      --navy-light: #2e4f8a;
-      --accent: #2e75b6;
-      --green-bg: #e2efda;
-      --green-text: #375623;
-      --stripe: #d9e1f2;
-      --gray: #595959;
-      --border: #c9d4e8;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Arial', sans-serif;
-      background: #f4f6fb;
-      color: #222;
-      padding: 32px 16px;
-    }
-
-    .page {
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    /* ── 페이지 헤더 ── */
-    .page-header {
-      background: var(--navy);
-      color: #fff;
-      border-radius: 10px 10px 0 0;
-      padding: 28px 36px 22px;
-    }
-    .page-header h1 { font-size: 1.7rem; font-weight: 700; letter-spacing: -0.3px; }
-    .page-header .meta {
-      margin-top: 6px;
-      font-size: 0.82rem;
-      opacity: 0.75;
-      display: flex;
-      gap: 18px;
-      flex-wrap: wrap;
-    }
-    .page-header .meta span::before { content: "· "; }
-
-    /* ── KPI 카드 ── */
-    .kpi-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-top: none;
-    }
-    .kpi {
-      padding: 20px 24px;
-      border-right: 1px solid var(--border);
-    }
-    .kpi:last-child { border-right: none; }
-    .kpi .label { font-size: 0.75rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
-    .kpi .value { font-size: 1.9rem; font-weight: 700; color: var(--navy); margin-top: 4px; }
-    .kpi .sub   { font-size: 0.78rem; color: var(--gray); margin-top: 2px; }
-
-    /* ── 섹션 ── */
-    .section {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-top: none;
-      padding: 28px 32px;
-    }
-    .section + .section { border-top: none; }
-    .section-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: var(--navy);
-      margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid var(--navy);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .section-title .badge {
-      font-size: 0.7rem;
-      background: var(--accent);
-      color: #fff;
-      border-radius: 4px;
-      padding: 2px 8px;
-      font-weight: 600;
-    }
-
-    /* ── 공통 테이블 ── */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.875rem;
-    }
-    thead th {
-      background: var(--navy);
-      color: #fff;
-      padding: 10px 14px;
-      text-align: center;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    thead th.left { text-align: left; }
-    tbody tr:nth-child(even) { background: var(--stripe); }
-    tbody tr:hover { background: #c8d4ef; }
-    tbody td {
-      padding: 9px 14px;
-      border-bottom: 1px solid var(--border);
-    }
-    tbody td.right { text-align: right; }
-    tbody td.center { text-align: center; }
-    tfoot td {
-      padding: 10px 14px;
-      background: var(--navy);
-      color: #fff;
-      font-weight: 700;
-      border: none;
-    }
-    tfoot td.right { text-align: right; }
-
-    /* ── 통화 뱃지 ── */
-    .curr {
-      display: inline-block;
-      font-size: 0.68rem;
-      font-weight: 700;
-      padding: 1px 5px;
-      border-radius: 3px;
-      vertical-align: middle;
-      margin-left: 3px;
-    }
-    .curr-usd { background: #dbeafe; color: #1d4ed8; }
-    .curr-cad { background: #fef9c3; color: #92400e; }
-
-    /* ── 로열티율 뱃지 ── */
-    .rate {
-      display: inline-block;
-      font-size: 0.72rem;
-      font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 4px;
-    }
-    .rate-70 { background: #dcfce7; color: #166534; }
-    .rate-35 { background: #fff7ed; color: #9a3412; }
-
-    /* ── 집계 표 ── */
-    .pivot-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-    }
-    @media (max-width: 700px) { .pivot-grid { grid-template-columns: 1fr; } }
-
-    .sub-table-title {
-      font-size: 0.82rem;
-      font-weight: 700;
-      color: var(--navy);
-      margin-bottom: 8px;
-    }
-
-    /* ── 합계 강조 셀 ── */
-    .total-cell {
-      background: var(--green-bg);
-      color: var(--green-text);
-      font-weight: 700;
-      text-align: right;
-      padding: 9px 14px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    /* ── 비율 바 ── */
-    .bar-wrap { display: flex; align-items: center; gap: 8px; }
-    .bar-bg {
-      flex: 1;
-      height: 10px;
-      background: #e5e7eb;
-      border-radius: 5px;
-      overflow: hidden;
-    }
-    .bar-fill { height: 100%; border-radius: 5px; }
-    .bar-70 { background: #16a34a; }
-    .bar-35 { background: #f97316; }
-    .bar-label { font-size: 0.78rem; font-weight: 700; min-width: 38px; text-align: right; }
-
-    /* ── 푸터 ── */
-    .page-footer {
-      background: var(--navy);
-      color: rgba(255,255,255,0.6);
-      text-align: center;
-      font-size: 0.75rem;
-      padding: 14px;
-      border-radius: 0 0 10px 10px;
-    }
-
-    /* ── 반응형 ── */
-    @media (max-width: 640px) {
-      .kpi-row { grid-template-columns: repeat(2, 1fr); }
-      .kpi { border-bottom: 1px solid var(--border); }
-      .section { padding: 20px 16px; }
-    }
+    :root{--navy:#1f3864;--accent:#2e75b6;--green-bg:#e2efda;--green-text:#375623;--stripe:#d9e1f2;--gray:#595959;--border:#c9d4e8;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:Arial,sans-serif;background:#f4f6fb;color:#222;padding:32px 16px;}
+    .page{max-width:1100px;margin:0 auto;}
+    .page-header{background:var(--navy);color:#fff;border-radius:10px 10px 0 0;padding:28px 36px 22px;}
+    .page-header h1{font-size:1.7rem;font-weight:700;}
+    .page-header .meta{margin-top:6px;font-size:.82rem;opacity:.75;display:flex;gap:18px;flex-wrap:wrap;}
+    .page-header .meta span::before{content:"· ";}
+    .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));background:#fff;border:1px solid var(--border);border-top:none;}
+    .kpi{padding:20px 24px;border-right:1px solid var(--border);}
+    .kpi:last-child{border-right:none;}
+    .kpi .label{font-size:.75rem;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;}
+    .kpi .value{font-size:1.9rem;font-weight:700;color:var(--navy);margin-top:4px;}
+    .kpi .sub{font-size:.78rem;color:var(--gray);margin-top:2px;}
+    .section{background:#fff;border:1px solid var(--border);border-top:none;padding:28px 32px;}
+    .section-title{font-size:1.05rem;font-weight:700;color:var(--navy);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--navy);display:flex;align-items:center;gap:8px;}
+    .badge{font-size:.7rem;background:var(--accent);color:#fff;border-radius:4px;padding:2px 8px;font-weight:600;}
+    table{width:100%;border-collapse:collapse;font-size:.875rem;}
+    thead th{background:var(--navy);color:#fff;padding:10px 14px;text-align:center;font-weight:600;white-space:nowrap;}
+    thead th.left{text-align:left;}
+    tr.stripe td{background:var(--stripe);}
+    tbody tr:hover td{background:#c8d4ef;}
+    tbody td{padding:9px 14px;border-bottom:1px solid var(--border);}
+    tbody td.right{text-align:right;}
+    tbody td.center{text-align:center;}
+    tfoot td{padding:10px 14px;background:var(--navy);color:#fff;font-weight:700;border:none;text-align:right;}
+    tfoot td:first-child{text-align:left;}
+    .total-cell{background:var(--green-bg);color:var(--green-text);font-weight:700;text-align:right;padding:9px 14px;border-bottom:1px solid var(--border);}
+    .curr{display:inline-block;font-size:.68rem;font-weight:700;padding:1px 5px;border-radius:3px;vertical-align:middle;}
+    .curr-usd{background:#dbeafe;color:#1d4ed8;}
+    .curr-cad{background:#fef9c3;color:#92400e;}
+    .rate{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 7px;border-radius:4px;}
+    .rate-70{background:#dcfce7;color:#166534;}
+    .rate-35{background:#fff7ed;color:#9a3412;}
+    .pivot-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+    .sub-title{font-size:.82rem;font-weight:700;color:var(--navy);margin-bottom:8px;}
+    .bar-wrap{display:flex;align-items:center;gap:8px;}
+    .bar-bg{flex:1;height:10px;background:#e5e7eb;border-radius:5px;overflow:hidden;}
+    .bar-fill{height:100%;border-radius:5px;}
+    .bar-70{background:#16a34a;}.bar-35{background:#f97316;}
+    .bar-label{font-size:.78rem;font-weight:700;min-width:42px;text-align:right;}
+    .page-footer{background:var(--navy);color:rgba(255,255,255,.6);text-align:center;font-size:.75rem;padding:14px;border-radius:0 0 10px 10px;}
+    small{font-size:.7rem;opacity:.8;}
+    @media(max-width:700px){.pivot-grid{grid-template-columns:1fr;}.section{padding:20px 16px;}}
   </style>
 </head>
 <body>
 <div class="page">
 
-  <!-- 헤더 -->
-  <header class="page-header">
-    <h1>KDP 월별 판매 보고서</h1>
-    <div class="meta">
-      <span>Author: Chloe Oh</span>
-      <span>집계 기간: January 2026 – April 2026</span>
-      <span>생성일: 2026-05-22</span>
-    </div>
-  </header>
+<header class="page-header">
+  <h1>KDP Monthly Sales Report</h1>
+  <div class="meta">
+    <span>Author: Chloe Oh</span>
+    <span>Period: January 2026 - February 2026</span>
+    <span>Generated: 2026-05-22</span>
+  </div>
+</header>
 
-  <!-- KPI 카드 -->
-  <div class="kpi-row">
-    <div class="kpi">
-      <div class="label">총 순판매</div>
-      <div class="value">20권</div>
-      <div class="sub">Jan 19 · Feb 1</div>
+<div class="kpi-row">
+  <div class="kpi"><div class="label">Net Units Sold</div><div class="value">20</div><div class="sub">Sold 23 &nbsp;·&nbsp; Refunded 3</div></div>
+  <div class="kpi"><div class="label">USD Royalty</div><div class="value">$54.30</div><div class="sub">Amazon.com</div></div>
+  <div class='kpi'><div class='label'>CAD Royalty</div><div class='value'>C$5.33</div><div class='sub'>Amazon.ca</div></div>
+  <div class="kpi"><div class="label">Books</div><div class="value">3</div><div class="sub">K-LIFE UNVEILED Series</div></div>
+</div>
+
+<section class="section">
+  <div class="section-title">Raw Transaction Data <span class="badge">7 rows</span></div>
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr><th class="left">Period</th><th class="left">Title</th><th>Market</th><th>Currency</th><th>Sold</th><th>Refunded</th><th>Net</th><th>Rate</th><th>List Price</th><th>Royalty</th></tr></thead>
+    <tbody><tr><td>January 2026</td><td>K-LIFE UNVEILED 2 : YOON-JI NEEDS A HOME</td><td class='center'>Amazon.com</td><td class='center'><span class="curr curr-usd">USD</span></td><td class='center'>3</td><td class='center'>1</td><td class='center'>2</td><td class='center'><span class='rate rate-70'>70%</span></td><td class='right'>$6.00</td><td class='right'>$7.32</td></tr>
+<tr><td>January 2026</td><td>K-LIFE UNVEILED 2 : YOON-JI NEEDS A HOME</td><td class='center'>Amazon.com</td><td class='center'><span class="curr curr-usd">USD</span></td><td class='center'>4</td><td class='center'>0</td><td class='center'>4</td><td class='center'><span class='rate rate-35'>35%</span></td><td class='right'>$6.00</td><td class='right'>$8.40</td></tr>
+<tr><td>January 2026</td><td>K-LIFE UNVEILED 1 : YOON-JI AT WORK: Navigating Real Life in Korea Beyond K-Pop</td><td class='center'>Amazon.com</td><td class='center'><span class="curr curr-usd">USD</span></td><td class='center'>3</td><td class='center'>1</td><td class='center'>2</td><td class='center'><span class='rate rate-70'>70%</span></td><td class='right'>$6.00</td><td class='right'>$7.44</td></tr>
+<tr><td>January 2026</td><td>K-LIFE UNVEILED 1 : YOON-JI AT WORK: Navigating Real Life in Korea Beyond K-Pop</td><td class='center'>Amazon.com</td><td class='center'><span class="curr curr-usd">USD</span></td><td class='center'>5</td><td class='center'>0</td><td class='center'>5</td><td class='center'><span class='rate rate-35'>35%</span></td><td class='right'>$6.00</td><td class='right'>$10.50</td></tr>
+<tr><td>January 2026</td><td>K-LIFE UNVEILED 3 : YOON-JI IN LOVE</td><td class='center'>Amazon.com</td><td class='center'><span class="curr curr-usd">USD</span></td><td class='center'>3</td><td class='center'>1</td><td class='center'>2</td><td class='center'><span class='rate rate-70'>70%</span></td><td class='right'>$7.60</td><td class='right'>$10.00</td></tr>
+<tr><td>January 2026</td><td>K-LIFE UNVEILED 3 : YOON-JI IN LOVE</td><td class='center'>Amazon.com</td><td class='center'><span class="curr curr-usd">USD</span></td><td class='center'>4</td><td class='center'>0</td><td class='center'>4</td><td class='center'><span class='rate rate-35'>35%</span></td><td class='right'>$7.60</td><td class='right'>$10.64</td></tr>
+<tr><td>February 2026</td><td>K-LIFE UNVEILED 1 : YOON-JI AT WORK: Navigating Real Life in Korea Beyond K-Pop</td><td class='center'>Amazon.ca</td><td class='center'><span class="curr curr-cad">CAD</span></td><td class='center'>1</td><td class='center'>0</td><td class='center'>1</td><td class='center'><span class='rate rate-70'>70%</span></td><td class='right'>C$8.29</td><td class='right'>C$5.33</td></tr>
+</tbody>
+    <tfoot><tr><td colspan="4">Total</td><td>23</td><td>3</td><td>20</td><td></td><td></td><td>$54.30 USD / C$5.33 CAD</td></tr></tfoot>
+  </table>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-title">Monthly Sales by Book</div>
+  <div class="pivot-grid">
+    <div>
+      <div class="sub-title">Net Units Sold</div>
+      <table>
+        <thead><tr><th class='left'>Title</th><th>Jan 2026</th><th>Feb 2026</th><th>Total</th></tr></thead>
+        <tbody><tr><td>Book 1 - YOON-JI AT WORK</td><td class='center'>7</td><td class='center'>1</td><td class='total-cell'>8</td></tr>
+<tr class='stripe'><td>Book 2 - YOON-JI NEEDS A HOME</td><td class='center'>6</td><td class='center'><span style='color:#bbb'>-</span></td><td class='total-cell'>6</td></tr>
+<tr><td>Book 3 - YOON-JI IN LOVE</td><td class='center'>6</td><td class='center'><span style='color:#bbb'>-</span></td><td class='total-cell'>6</td></tr>
+</tbody>
+        <tfoot><tr><td>Monthly Total</td><td class='right'>19</td><td class='right'>1</td><td>20</td></tr></tfoot>
+      </table>
     </div>
-    <div class="kpi">
-      <div class="label">USD 인세 합계</div>
-      <div class="value">$54.30</div>
-      <div class="sub">Amazon.com (Jan 2026)</div>
-    </div>
-    <div class="kpi">
-      <div class="label">CAD 인세 합계</div>
-      <div class="value">C$5.33</div>
-      <div class="sub">Amazon.ca (Feb 2026)</div>
-    </div>
-    <div class="kpi">
-      <div class="label">판매 도서 수</div>
-      <div class="value">3권</div>
-      <div class="sub">K-LIFE UNVEILED 시리즈</div>
+    <div>
+      <div class="sub-title">Royalty</div>
+      <table>
+        <thead><tr><th class='left'>Title</th><th>Jan 2026<br><small>(USD)</small></th><th>Feb 2026<br><small>(CAD)</small></th><th>Subtotal (USD)</th></tr></thead>
+        <tbody><tr><td>Book 1 - YOON-JI AT WORK</td><td class='right'>$17.94</td><td class='right'>C$5.33</td><td class='total-cell'>$17.94</td></tr>
+<tr class='stripe'><td>Book 2 - YOON-JI NEEDS A HOME</td><td class='right'>$15.72</td><td class='right'><span style='color:#bbb'>-</span></td><td class='total-cell'>$15.72</td></tr>
+<tr><td>Book 3 - YOON-JI IN LOVE</td><td class='right'>$20.64</td><td class='right'><span style='color:#bbb'>-</span></td><td class='total-cell'>$20.64</td></tr>
+</tbody>
+        <tfoot><tr><td>Monthly Total</td><td class='right'>$54.30</td><td class='right'>C$5.33</td><td>$54.30</td></tr></tfoot>
+      </table>
     </div>
   </div>
+</section>
 
-  <!-- 원본 데이터 -->
-  <section class="section">
-    <div class="section-title">
-      원본 거래 데이터
-      <span class="badge">7건</span>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th class="left">월 (Period)</th>
-          <th class="left">도서명</th>
-          <th>마켓</th>
-          <th>통화</th>
-          <th>판매</th>
-          <th>환불</th>
-          <th>순판매</th>
-          <th>로열티율</th>
-          <th>정가</th>
-          <th>인세</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>January 2026</td>
-          <td>K-LIFE UNVEILED 1 : YOON-JI AT WORK</td>
-          <td class="center">Amazon.com</td>
-          <td class="center"><span class="curr curr-usd">USD</span></td>
-          <td class="center">3</td><td class="center">1</td><td class="center">2</td>
-          <td class="center"><span class="rate rate-70">70%</span></td>
-          <td class="right">$6.00</td><td class="right">$7.44</td>
-        </tr>
-        <tr>
-          <td>January 2026</td>
-          <td>K-LIFE UNVEILED 1 : YOON-JI AT WORK</td>
-          <td class="center">Amazon.com</td>
-          <td class="center"><span class="curr curr-usd">USD</span></td>
-          <td class="center">5</td><td class="center">0</td><td class="center">5</td>
-          <td class="center"><span class="rate rate-35">35%</span></td>
-          <td class="right">$6.00</td><td class="right">$10.50</td>
-        </tr>
-        <tr>
-          <td>January 2026</td>
-          <td>K-LIFE UNVEILED 2 : YOON-JI NEEDS A HOME</td>
-          <td class="center">Amazon.com</td>
-          <td class="center"><span class="curr curr-usd">USD</span></td>
-          <td class="center">3</td><td class="center">1</td><td class="center">2</td>
-          <td class="center"><span class="rate rate-70">70%</span></td>
-          <td class="right">$6.00</td><td class="right">$7.32</td>
-        </tr>
-        <tr>
-          <td>January 2026</td>
-          <td>K-LIFE UNVEILED 2 : YOON-JI NEEDS A HOME</td>
-          <td class="center">Amazon.com</td>
-          <td class="center"><span class="curr curr-usd">USD</span></td>
-          <td class="center">4</td><td class="center">0</td><td class="center">4</td>
-          <td class="center"><span class="rate rate-35">35%</span></td>
-          <td class="right">$6.00</td><td class="right">$8.40</td>
-        </tr>
-        <tr>
-          <td>January 2026</td>
-          <td>K-LIFE UNVEILED 3 : YOON-JI IN LOVE</td>
-          <td class="center">Amazon.com</td>
-          <td class="center"><span class="curr curr-usd">USD</span></td>
-          <td class="center">3</td><td class="center">1</td><td class="center">2</td>
-          <td class="center"><span class="rate rate-70">70%</span></td>
-          <td class="right">$7.60</td><td class="right">$10.00</td>
-        </tr>
-        <tr>
-          <td>January 2026</td>
-          <td>K-LIFE UNVEILED 3 : YOON-JI IN LOVE</td>
-          <td class="center">Amazon.com</td>
-          <td class="center"><span class="curr curr-usd">USD</span></td>
-          <td class="center">4</td><td class="center">0</td><td class="center">4</td>
-          <td class="center"><span class="rate rate-35">35%</span></td>
-          <td class="right">$7.60</td><td class="right">$10.64</td>
-        </tr>
-        <tr>
-          <td>February 2026</td>
-          <td>K-LIFE UNVEILED 1 : YOON-JI AT WORK</td>
-          <td class="center">Amazon.ca</td>
-          <td class="center"><span class="curr curr-cad">CAD</span></td>
-          <td class="center">1</td><td class="center">0</td><td class="center">1</td>
-          <td class="center"><span class="rate rate-70">70%</span></td>
-          <td class="right">C$8.29</td><td class="right">C$5.33</td>
-        </tr>
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="4">합계</td>
-          <td class="right" style="text-align:center">23</td>
-          <td class="right" style="text-align:center">3</td>
-          <td class="right" style="text-align:center">20</td>
-          <td></td>
-          <td></td>
-          <td class="right">$54.30 USD<br>C$5.33 CAD</td>
-        </tr>
-      </tfoot>
-    </table>
-  </section>
+<section class="section">
+  <div class="section-title">Book Summary</div>
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr><th class="left">Title</th><th>Total Sold</th><th>Refunded</th><th>Net Sold</th><th>USD Royalty</th><th>CAD Royalty</th><th>Avg. Price</th><th>Market</th></tr></thead>
+    <tbody><tr><td>K-LIFE UNVEILED 1 : YOON-JI AT WORK: Navigating Real Life in Korea Beyond K-Pop</td><td class='center'>9</td><td class='center'>1</td><td class='center'>8</td><td class='right'>$17.94</td><td class='right'>C$5.33</td><td class='center'>$6.00</td><td style='font-size:.78rem;color:#595959'>Amazon.com + Amazon.ca</td></tr>
+<tr class='stripe'><td>K-LIFE UNVEILED 2 : YOON-JI NEEDS A HOME</td><td class='center'>7</td><td class='center'>1</td><td class='center'>6</td><td class='right'>$15.72</td><td class='right'><span style='color:#bbb'>-</span></td><td class='center'>$6.00</td><td style='font-size:.78rem;color:#595959'>Amazon.com</td></tr>
+<tr><td>K-LIFE UNVEILED 3 : YOON-JI IN LOVE</td><td class='center'>7</td><td class='center'>1</td><td class='center'>6</td><td class='right'>$20.64</td><td class='right'><span style='color:#bbb'>-</span></td><td class='center'>$7.60</td><td style='font-size:.78rem;color:#595959'>Amazon.com</td></tr>
+</tbody>
+    <tfoot><tr><td>Total</td><td>23</td><td>3</td><td>20</td><td>$54.30</td><td>C$5.33</td><td></td><td></td></tr></tfoot>
+  </table>
+  </div>
+</section>
 
-  <!-- 월별 도서별 집계 -->
-  <section class="section">
-    <div class="section-title">월별 도서별 집계</div>
-    <div class="pivot-grid">
+<section class="section">
+  <div class="section-title">Royalty Rate Breakdown <span style="font-size:.8rem;font-weight:400;color:var(--gray)">(USD only)</span></div>
+  <table style="max-width:540px">
+    <thead><tr><th class="left">Rate</th><th>Sold</th><th>Net</th><th>Royalty (USD)</th><th class="left" style="min-width:160px">Share</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rate rate-70">70%</span></td><td class="center">9</td><td class="center">6</td><td class="right">$24.76</td><td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill bar-70" style="width:45.6%"></div></div><div class="bar-label" style="color:#166534">45.6%</div></div></td></tr>
+      <tr class="stripe"><td><span class="rate rate-35">35%</span></td><td class="center">13</td><td class="center">13</td><td class="right">$29.54</td><td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill bar-35" style="width:54.4%"></div></div><div class="bar-label" style="color:#9a3412">54.4%</div></div></td></tr>
+    </tbody>
+    <tfoot><tr><td>Total</td><td>22</td><td>19</td><td>$54.30</td><td>100.0%</td></tr></tfoot>
+  </table>
+  <p style="margin-top:14px;font-size:.78rem;color:var(--gray)">
+    * 70% royalty: list price minus delivery cost &nbsp;|&nbsp; 35% royalty: no delivery cost deducted
+  </p>
+</section>
 
-      <!-- 순판매 -->
-      <div>
-        <div class="sub-table-title">순판매 (Net Units Sold)</div>
-        <table>
-          <thead>
-            <tr>
-              <th class="left">도서</th>
-              <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th>
-              <th>합계</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Book 1 · AT WORK</td>
-              <td class="center">7</td><td class="center">1</td>
-              <td class="center" style="color:#aaa">–</td><td class="center" style="color:#aaa">–</td>
-              <td class="total-cell">8</td>
-            </tr>
-            <tr>
-              <td>Book 2 · NEEDS A HOME</td>
-              <td class="center">6</td>
-              <td class="center" style="color:#aaa">–</td>
-              <td class="center" style="color:#aaa">–</td><td class="center" style="color:#aaa">–</td>
-              <td class="total-cell">6</td>
-            </tr>
-            <tr>
-              <td>Book 3 · IN LOVE</td>
-              <td class="center">6</td>
-              <td class="center" style="color:#aaa">–</td>
-              <td class="center" style="color:#aaa">–</td><td class="center" style="color:#aaa">–</td>
-              <td class="total-cell">6</td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr>
-              <td>월별 합계</td>
-              <td class="right">19</td><td class="right">1</td>
-              <td class="right">0</td><td class="right">0</td>
-              <td class="right">20</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      <!-- 인세 -->
-      <div>
-        <div class="sub-table-title">인세 Royalty (USD)</div>
-        <table>
-          <thead>
-            <tr>
-              <th class="left">도서</th>
-              <th>Jan (USD)</th><th>Feb (CAD)</th>
-              <th>합계 (USD)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Book 1 · AT WORK</td>
-              <td class="right">$17.94</td>
-              <td class="right">C$5.33</td>
-              <td class="total-cell">$17.94</td>
-            </tr>
-            <tr>
-              <td>Book 2 · NEEDS A HOME</td>
-              <td class="right">$15.72</td>
-              <td class="right" style="color:#aaa">–</td>
-              <td class="total-cell">$15.72</td>
-            </tr>
-            <tr>
-              <td>Book 3 · IN LOVE</td>
-              <td class="right">$20.64</td>
-              <td class="right" style="color:#aaa">–</td>
-              <td class="total-cell">$20.64</td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr>
-              <td>월별 합계</td>
-              <td class="right">$54.30</td>
-              <td class="right">C$5.33</td>
-              <td class="right">$54.30</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- 도서별 요약 -->
-  <section class="section">
-    <div class="section-title">도서별 전체 요약</div>
-    <table>
-      <thead>
-        <tr>
-          <th class="left">도서명</th>
-          <th>총 판매</th><th>총 환불</th><th>총 순판매</th>
-          <th>USD 인세</th><th>CAD 인세</th>
-          <th>평균 정가</th><th>비고</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>K-LIFE UNVEILED 1 : YOON-JI AT WORK</td>
-          <td class="center">9</td><td class="center">1</td><td class="center">8</td>
-          <td class="right">$17.94</td><td class="right">C$5.33</td>
-          <td class="center">$6.00</td>
-          <td><span style="font-size:0.78rem;color:var(--gray)">US + CA 마켓</span></td>
-        </tr>
-        <tr>
-          <td>K-LIFE UNVEILED 2 : YOON-JI NEEDS A HOME</td>
-          <td class="center">7</td><td class="center">1</td><td class="center">6</td>
-          <td class="right">$15.72</td><td class="right" style="color:#aaa">–</td>
-          <td class="center">$6.00</td>
-          <td><span style="font-size:0.78rem;color:var(--gray)">US 마켓 전용</span></td>
-        </tr>
-        <tr>
-          <td>K-LIFE UNVEILED 3 : YOON-JI IN LOVE</td>
-          <td class="center">7</td><td class="center">1</td><td class="center">6</td>
-          <td class="right">$20.64</td><td class="right" style="color:#aaa">–</td>
-          <td class="center">$7.60</td>
-          <td><span style="font-size:0.78rem;color:var(--gray)">US 마켓 전용</span></td>
-        </tr>
-      </tbody>
-      <tfoot>
-        <tr>
-          <td>합계</td>
-          <td class="right">23</td><td class="right">3</td><td class="right">20</td>
-          <td class="right">$54.30</td><td class="right">C$5.33</td>
-          <td></td><td></td>
-        </tr>
-      </tfoot>
-    </table>
-  </section>
-
-  <!-- 로열티율 분석 -->
-  <section class="section">
-    <div class="section-title">로열티율별 판매 비중 <span style="font-size:0.8rem;font-weight:400;color:var(--gray)">(1월 USD 기준)</span></div>
-    <table style="max-width:520px">
-      <thead>
-        <tr>
-          <th class="left">로열티율</th>
-          <th>총 판매</th><th>총 순판매</th><th>인세 (USD)</th>
-          <th class="left" style="min-width:160px">비율</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><span class="rate rate-70">70%</span></td>
-          <td class="center">9</td><td class="center">6</td>
-          <td class="right">$24.76</td>
-          <td>
-            <div class="bar-wrap">
-              <div class="bar-bg"><div class="bar-fill bar-70" style="width:45.6%"></div></div>
-              <div class="bar-label" style="color:#166534">45.6%</div>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td><span class="rate rate-35">35%</span></td>
-          <td class="center">12</td><td class="center">12</td>
-          <td class="right">$29.54</td>
-          <td>
-            <div class="bar-wrap">
-              <div class="bar-bg"><div class="bar-fill bar-35" style="width:54.4%"></div></div>
-              <div class="bar-label" style="color:#9a3412">54.4%</div>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-      <tfoot>
-        <tr>
-          <td>합계</td>
-          <td class="right">21</td><td class="right">18</td>
-          <td class="right">$54.30</td>
-          <td class="right">100.0%</td>
-        </tr>
-      </tfoot>
-    </table>
-    <p style="margin-top:14px;font-size:0.78rem;color:var(--gray)">
-      * 70% 로열티: 배송비(Delivery Cost) 차감 후 지급 &nbsp;|&nbsp;
-        35% 로열티: 배송비 없음 &nbsp;|&nbsp;
-        March·April 2026 판매 없음
-    </p>
-  </section>
-
-  <!-- 푸터 -->
-  <footer class="page-footer">
-    KDP Prior Month Royalties &nbsp;|&nbsp; Author: Chloe Oh &nbsp;|&nbsp; Generated 2026-05-22
-  </footer>
-
+<footer class="page-footer">
+  KDP Prior Month Royalties &nbsp;|&nbsp; Author: Chloe Oh &nbsp;|&nbsp; Generated 2026-05-22
+</footer>
 </div>
 </body>
 </html>
